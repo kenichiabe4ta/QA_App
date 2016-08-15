@@ -4,8 +4,11 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ListView;
+import java.util.ArrayList;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -14,16 +17,19 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.HashMap;
 
-public class QuestionDetailActivity extends AppCompatActivity {
+public class QuestionDetailActivity extends AppCompatActivity{
 
     private ListView mListView;
     private Question mQuestion;
     private QuestionDetailListAdapter mAdapter;
-
     private DatabaseReference mAnswerRef;
+    private DatabaseReference mQuestionRef;     //Firebase上の質問データの場所(全ジャンル)
+    private Button favoriteButton;              //お気に入りボタン追加
+    ArrayList<String> favList = new ArrayList<>();//お気に入りkeyリスト
 
     private ChildEventListener mEventListener = new ChildEventListener() {
         @Override
@@ -75,7 +81,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         mListView.setAdapter(mAdapter);
         mAdapter.notifyDataSetChanged();
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        final FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -95,8 +101,42 @@ public class QuestionDetailActivity extends AppCompatActivity {
             }
         });
 
-        //DatabaseReference dataBaseReference = FirebaseDatabase.getInstance().getReference();
-        //mAnswerRef = dataBaseReference.child(Const.ContentsPATH).child(String.valueOf(mQuestion.getGenre())).child(mQuestion.getQuestionUid()).child(Const.AnswersPATH);
-        //mAnswerRef.addChildEventListener(mEventListener);
+        DatabaseReference dataBaseReference = FirebaseDatabase.getInstance().getReference();
+        mAnswerRef = dataBaseReference.child(Const.ContentsPATH).child(String.valueOf(mQuestion
+                                .getGenre())).child(mQuestion.getQuestionUid()).child(Const.AnswersPATH);
+        mAnswerRef.addChildEventListener(mEventListener);
+
+
+        Log.d("firebase","test");
+        favoriteButton = (Button) findViewById(R.id.button);    //お気に入りボタン用リスナ
+
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            favoriteButton.setVisibility(View.INVISIBLE);       //ログインしていない場合
+        }else{
+            favoriteButton.setVisibility(View.VISIBLE);         //ログインしている場合
+            mQuestionRef = dataBaseReference.child(Const.ContentsPATH).child(String.valueOf(mQuestion.getGenre()))
+                                                                                  .child(mQuestion.getQuestionUid());
+
+            favList.add("https://qaapp-251e8.firebaseio.com/contents/4/-KP3PVr9HckAjO2G__GU");//ダミーデータ
+
+            // favList<String>の値と質問のkeyが一致したら"お気に入り登録済み"と表示
+            mQuestionRef.addListenerForSingleValueEvent(new ValueEventListener() {// user/contents/mGenreのkey取得
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    String key = mQuestionRef.getRef().toString();
+                    for(String s : favList){
+                        if( s.equals( key )){                           //「お気に入り」登録チェック
+                            favoriteButton.setText("お気に入り登録済み");
+                        }
+                    }
+                }
+                @Override
+                public void onCancelled(DatabaseError databaseError) {}
+            });
+        }
     }
+    public void favorite(View v){   //お気に入りボタン
+        //お気に入り追加処理
+    }
+
 }

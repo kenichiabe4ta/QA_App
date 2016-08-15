@@ -95,26 +95,16 @@ public class MainActivity extends AppCompatActivity {
                             question.getAnswers().add(answer);
                         }
                     }
-
                     mAdapter.notifyDataSetChanged();
                 }
             }
         }
-
         @Override
-        public void onChildRemoved(DataSnapshot dataSnapshot) {
-
-        }
-
+        public void onChildRemoved(DataSnapshot dataSnapshot) {        }
         @Override
-        public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
-        }
-
+        public void onChildMoved(DataSnapshot dataSnapshot, String s) {        }
         @Override
-        public void onCancelled(DatabaseError databaseError) {
-
-        }
+        public void onCancelled(DatabaseError databaseError) {        }
     };
 
     @Override
