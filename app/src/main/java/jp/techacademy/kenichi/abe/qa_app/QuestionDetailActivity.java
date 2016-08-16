@@ -24,8 +24,10 @@ public class QuestionDetailActivity extends AppCompatActivity{
     private ListView mListView;
     private Question mQuestion;
     private QuestionDetailListAdapter mAdapter;
-    private Button favoriteButton;              //お気に入りボタン追加
-    ArrayList<String> favList = new ArrayList<>();//お気に入りkeyリスト
+    private Button favoriteButton;                  //お気に入りボタン追加
+    ArrayList<String> favList = new ArrayList<>();  //お気に入りfavリスト
+    String mCurrentUserId;
+    //ArrayList<String> fav = new ArrayList<>();
 
     private DatabaseReference mdbRef,mAnswerRef,mQuestionRef,mUserRef;   //Firebase上の場所
 
@@ -103,58 +105,40 @@ public class QuestionDetailActivity extends AppCompatActivity{
         });
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();    //認証されてログインしたユーザ?
-        mdbRef = FirebaseDatabase.getInstance().getReference();
-        mQuestionRef = mdbRef.child(Const.ContentsPATH).child(String.valueOf(mQuestion.getGenre())).child(mQuestion.getQuestionUid());
-        mAnswerRef = mQuestionRef.child(Const.AnswersPATH);
-        mUserRef = mdbRef.child(Const.UsersPATH).child(user.getUid());
-
-
-
-
-
-        mUserRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot ds) {
-                //favList = (ArrayList<String>) ds.getValue();      //エラー
-                String body = (String) ds.child("fav").getValue();  //エラー
-                Log.d("firebase body=",body);
-                String name = (String) ds.child("name").getValue(); //OK
-                Log.d("firebase name=",name);
-                String key = mQuestionRef.getRef().toString();
-                    for(String s : favList){
-                        if( s.equals( key )){
-                            favoriteButton.setText("お気に入り登録済み");
-                        }
-                    }
-                }
-            @Override
-            public void onCancelled(DatabaseError databaseError) {}
-        });
-
-
         if (user == null) {                                 //ログインしていない場合
             favoriteButton.setVisibility(View.INVISIBLE);
         }else{                                              //ログインしている場合
             favoriteButton.setVisibility(View.VISIBLE);
 
-            // favList<String>の値と質問のkeyが一致したら"お気に入り登録済み"と表示
-            //favList.add("https://qaapp-251e8.firebaseio.com/contents/4/-KP3PVr9HckAjO2G__GU");//ダミーデータ
-            //「お気に入り」登録チェック
-            //String key = mQuestionRef.getRef().toString();
-            Log.d("firebase mQuestionRef=",mQuestionRef.toString());
-            if(favList.contains(mQuestionRef.toString())){
-                favoriteButton.setText("お気に入り登録済み");
-            }
+            mdbRef = FirebaseDatabase.getInstance().getReference();
+            mUserRef = mdbRef.child(Const.UsersPATH).child(user.getUid());
+            mQuestionRef = mdbRef.child(Const.ContentsPATH).child(String.valueOf(mQuestion.getGenre())).child(mQuestion.getQuestionUid());
+            mAnswerRef = mQuestionRef.child(Const.AnswersPATH);
+
+            mUserRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot ds) {
+                    favList = ( ArrayList<String>)ds.child("fav").getValue();
+                    mCurrentUserId = mQuestionRef.getRef().toString();
+                    if(favList.contains(mCurrentUserId)){                    //「お気に入り」登録チェック
+                        favoriteButton.setText("お気に入り登録済み");
+                    }
+                }
+                @Override
+                public void onCancelled(DatabaseError databaseError) {}
+            });
         }
     }
     public void favorite(View v){   //お気に入りボタン
-
-        favList.add("a");
-        favList.add("b");
-        favList.add("c");
-        favList.add("d");
+        if( favoriteButton.getText().toString() =="お気に入り登録済み" ){
+            //お気に入り削除処理
+            favList.remove(mCurrentUserId);
+            favoriteButton.setText("お気に入り未登録");
+        }else{
+            //お気に入り追加処理
+            favList.add(mCurrentUserId);
+            favoriteButton.setText("お気に入り登録済み");
+        }
         mUserRef.child("fav").setValue(favList);
-
-        Log.d("favList",favList.toString());
     }
 }
