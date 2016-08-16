@@ -1,5 +1,4 @@
 package jp.techacademy.kenichi.abe.qa_app;
-
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -8,8 +7,9 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
-import java.util.ArrayList;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
@@ -18,18 +18,17 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-
 import java.util.HashMap;
-
 public class QuestionDetailActivity extends AppCompatActivity{
 
     private ListView mListView;
     private Question mQuestion;
     private QuestionDetailListAdapter mAdapter;
-    private DatabaseReference mAnswerRef;
-    private DatabaseReference mQuestionRef;     //Firebase上の質問データの場所(全ジャンル)
     private Button favoriteButton;              //お気に入りボタン追加
     ArrayList<String> favList = new ArrayList<>();//お気に入りkeyリスト
+
+    private DatabaseReference mdbRef,mAnswerRef,mQuestionRef,mUserRef;   //Firebase上の場所
+
 
     private ChildEventListener mEventListener = new ChildEventListener() {
         @Override
@@ -69,6 +68,8 @@ public class QuestionDetailActivity extends AppCompatActivity{
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_question_detail);
 
+        favoriteButton = (Button) findViewById(R.id.button);    //お気に入りボタン用リスナ
+
         // 渡ってきたQuestionのオブジェクトを保持する
         Bundle extras = getIntent().getExtras();
         mQuestion = (Question) extras.get("question");
@@ -101,42 +102,59 @@ public class QuestionDetailActivity extends AppCompatActivity{
             }
         });
 
-        DatabaseReference dataBaseReference = FirebaseDatabase.getInstance().getReference();
-        mAnswerRef = dataBaseReference.child(Const.ContentsPATH).child(String.valueOf(mQuestion
-                                .getGenre())).child(mQuestion.getQuestionUid()).child(Const.AnswersPATH);
-        mAnswerRef.addChildEventListener(mEventListener);
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();    //認証されてログインしたユーザ?
+        mdbRef = FirebaseDatabase.getInstance().getReference();
+        mQuestionRef = mdbRef.child(Const.ContentsPATH).child(String.valueOf(mQuestion.getGenre())).child(mQuestion.getQuestionUid());
+        mAnswerRef = mQuestionRef.child(Const.AnswersPATH);
+        mUserRef = mdbRef.child(Const.UsersPATH).child(user.getUid());
 
 
-        Log.d("firebase","test");
-        favoriteButton = (Button) findViewById(R.id.button);    //お気に入りボタン用リスナ
 
-        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-            favoriteButton.setVisibility(View.INVISIBLE);       //ログインしていない場合
-        }else{
-            favoriteButton.setVisibility(View.VISIBLE);         //ログインしている場合
-            mQuestionRef = dataBaseReference.child(Const.ContentsPATH).child(String.valueOf(mQuestion.getGenre()))
-                                                                                  .child(mQuestion.getQuestionUid());
 
-            favList.add("https://qaapp-251e8.firebaseio.com/contents/4/-KP3PVr9HckAjO2G__GU");//ダミーデータ
 
-            // favList<String>の値と質問のkeyが一致したら"お気に入り登録済み"と表示
-            mQuestionRef.addListenerForSingleValueEvent(new ValueEventListener() {// user/contents/mGenreのkey取得
-                @Override
-                public void onDataChange(DataSnapshot dataSnapshot) {
-                    String key = mQuestionRef.getRef().toString();
+        mUserRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot ds) {
+                //favList = (ArrayList<String>) ds.getValue();      //エラー
+                String body = (String) ds.child("fav").getValue();  //エラー
+                Log.d("firebase body=",body);
+                String name = (String) ds.child("name").getValue(); //OK
+                Log.d("firebase name=",name);
+                String key = mQuestionRef.getRef().toString();
                     for(String s : favList){
-                        if( s.equals( key )){                           //「お気に入り」登録チェック
+                        if( s.equals( key )){
                             favoriteButton.setText("お気に入り登録済み");
                         }
                     }
                 }
-                @Override
-                public void onCancelled(DatabaseError databaseError) {}
-            });
+            @Override
+            public void onCancelled(DatabaseError databaseError) {}
+        });
+
+
+        if (user == null) {                                 //ログインしていない場合
+            favoriteButton.setVisibility(View.INVISIBLE);
+        }else{                                              //ログインしている場合
+            favoriteButton.setVisibility(View.VISIBLE);
+
+            // favList<String>の値と質問のkeyが一致したら"お気に入り登録済み"と表示
+            //favList.add("https://qaapp-251e8.firebaseio.com/contents/4/-KP3PVr9HckAjO2G__GU");//ダミーデータ
+            //「お気に入り」登録チェック
+            //String key = mQuestionRef.getRef().toString();
+            Log.d("firebase mQuestionRef=",mQuestionRef.toString());
+            if(favList.contains(mQuestionRef.toString())){
+                favoriteButton.setText("お気に入り登録済み");
+            }
         }
     }
     public void favorite(View v){   //お気に入りボタン
-        //お気に入り追加処理
-    }
 
+        favList.add("a");
+        favList.add("b");
+        favList.add("c");
+        favList.add("d");
+        mUserRef.child("fav").setValue(favList);
+
+        Log.d("favList",favList.toString());
+    }
 }
