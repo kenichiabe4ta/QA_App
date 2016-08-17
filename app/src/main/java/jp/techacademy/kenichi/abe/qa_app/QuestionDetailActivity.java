@@ -3,12 +3,10 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -26,9 +24,7 @@ public class QuestionDetailActivity extends AppCompatActivity{
     private QuestionDetailListAdapter mAdapter;
     private Button favoriteButton;                  //お気に入りボタン追加
     ArrayList<String> favList = new ArrayList<>();  //お気に入りfavリスト
-    String mCurrentUserId;
-    //ArrayList<String> fav = new ArrayList<>();
-
+    private String mCurrentUserId;
     private DatabaseReference mdbRef,mAnswerRef,mQuestionRef,mUserRef;   //Firebase上の場所
 
 
@@ -114,14 +110,19 @@ public class QuestionDetailActivity extends AppCompatActivity{
             mUserRef = mdbRef.child(Const.UsersPATH).child(user.getUid());
             mQuestionRef = mdbRef.child(Const.ContentsPATH).child(String.valueOf(mQuestion.getGenre())).child(mQuestion.getQuestionUid());
             mAnswerRef = mQuestionRef.child(Const.AnswersPATH);
+            mCurrentUserId = mQuestionRef.getRef().toString();
 
             mUserRef.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot ds) {
-                    favList = ( ArrayList<String>)ds.child("fav").getValue();
-                    mCurrentUserId = mQuestionRef.getRef().toString();
-                    if(favList.contains(mCurrentUserId)){                    //「お気に入り」登録チェック
-                        favoriteButton.setText("お気に入り登録済み");
+                    if( (ArrayList<String>)ds.child("fav").getValue() == null ){// お気に入りがなかった場合
+                        favList.add("dummy");
+                        mUserRef.child("fav").setValue(favList);                // firebaseのfavにArrayListを保存
+                    }else{
+                        favList = (ArrayList<String>)ds.child("fav").getValue();
+                        if(favList.contains(mCurrentUserId)){                   //「お気に入り」登録チェック
+                            favoriteButton.setText("お気に入り登録済み");
+                        }
                     }
                 }
                 @Override
