@@ -24,9 +24,9 @@ public class QuestionDetailActivity extends AppCompatActivity{
     private QuestionDetailListAdapter mAdapter;
     private Button favoriteButton;                  //お気に入りボタン追加
     ArrayList<String> favList = new ArrayList<>();  //お気に入りfavリスト
-    private String mCurrentUserId;
+    private String mCurrentQuestionId;
     private DatabaseReference mdbRef,mAnswerRef,mQuestionRef,mUserRef;   //Firebase上の場所
-
+    private boolean favRegisteredFlag;              //お気に入りフラグ追加
 
     private ChildEventListener mEventListener = new ChildEventListener() {
         @Override
@@ -110,35 +110,43 @@ public class QuestionDetailActivity extends AppCompatActivity{
             mUserRef = mdbRef.child(Const.UsersPATH).child(user.getUid());
             mQuestionRef = mdbRef.child(Const.ContentsPATH).child(String.valueOf(mQuestion.getGenre())).child(mQuestion.getQuestionUid());
             mAnswerRef = mQuestionRef.child(Const.AnswersPATH);
-            mCurrentUserId = mQuestionRef.getRef().toString();
+            mCurrentQuestionId = mQuestionRef.getRef().toString();
 
-            mUserRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(DataSnapshot ds) {
-                    if( (ArrayList<String>)ds.child("fav").getValue() == null ){// お気に入りがなかった場合
-                        favList.add("dummy");
-                        mUserRef.child("fav").setValue(favList);                // firebaseのfavにArrayListを保存
-                    }else{
-                        favList = (ArrayList<String>)ds.child("fav").getValue();
-                        if(favList.contains(mCurrentUserId)){                   //「お気に入り」登録チェック
-                            favoriteButton.setText("お気に入り登録済み");
-                        }
-                    }
-                }
-                @Override
-                public void onCancelled(DatabaseError databaseError) {}
-            });
+            FavRegisteredCheck();
+            if( favRegisteredFlag ){ favoriteButton.setText(R.string.fav_registered); }
         }
     }
+
+    private void FavRegisteredCheck(){                                          //お気に入り登録チェック
+        favRegisteredFlag=false;
+        mUserRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot ds) {
+                if( (ArrayList<String>)ds.child("fav").getValue() != null ){    // お気に入りがなかった場合
+                    favList = (ArrayList<String>)ds.child("fav").getValue();
+                    if(favList.contains(mCurrentQuestionId)){                   //「お気に入り」登録チェック
+                        favoriteButton.setText(R.string.fav_registered);
+                        favRegisteredFlag=true;
+                    }
+                }
+            }
+            @Override
+            public void onCancelled(DatabaseError databaseError) {}
+        });
+    }
+
     public void favorite(View v){   //お気に入りボタン
-        if( favoriteButton.getText().toString() =="お気に入り登録済み" ){
+        if( favRegisteredFlag ){
             //お気に入り削除処理
-            favList.remove(mCurrentUserId);
-            favoriteButton.setText("お気に入り未登録");
+            favList.remove(mCurrentQuestionId);
+            favoriteButton.setText(R.string.fav_unregistered);
+            favRegisteredFlag=false;
+
         }else{
             //お気に入り追加処理
-            favList.add(mCurrentUserId);
-            favoriteButton.setText("お気に入り登録済み");
+            favList.add(mCurrentQuestionId);
+            favoriteButton.setText(R.string.fav_registered);
+            favRegisteredFlag=true;
         }
         mUserRef.child("fav").setValue(favList);
     }

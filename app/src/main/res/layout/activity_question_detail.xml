@@ -28,7 +28,7 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="お気に入り未登録"
+        android:text="@string/fav_unregistered"
         android:id="@+id/button"
         android:onClick="favorite"
         android:layout_above="@+id/fab"
